@@ -110,7 +110,7 @@ export default function SettingsPage() {
           <CardContent>
             {reviewSuccess && (
               <Alert className="border-green-200 bg-green-50 mb-4">
-                <AlertDescription className="text-green-800">Review submitted! We'll be in touch soon.</AlertDescription>
+                <AlertDescription className="text-green-800">Review submitted! We&apos;ll be in touch soon.</AlertDescription>
               </Alert>
             )}
             <p className="text-sm text-gray-600 mb-4">

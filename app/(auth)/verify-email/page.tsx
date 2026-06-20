@@ -25,7 +25,7 @@ function VerifyEmailContent() {
     if (token) {
       verifyToken();
     }
-  }, [token]);
+  }, [token, verifyToken]);
 
   const verifyToken = async () => {
     if (!token) return;

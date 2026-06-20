@@ -35,7 +35,7 @@ export default function OnboardingPage() {
               HustleSheet helps salaried professionals with side-hustle income understand their tax obligations.
             </p>
             <p className="text-gray-700">
-              We'll help you:
+              We&apos;ll help you:
             </p>
             <ul className="list-disc list-inside space-y-2 text-gray-700">
               <li>Calculate tax under Old and New regimes</li>

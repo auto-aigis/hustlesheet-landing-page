@@ -44,7 +44,7 @@ export default function AISPage() {
         <CardContent className="space-y-4">
           <Alert className="border-yellow-200 bg-yellow-50">
             <AlertDescription className="text-yellow-800">
-              <strong>Coming soon!</strong> AIS reconciliation is under development. We'll notify you when it's ready.
+              <strong>Coming soon!</strong> AIS reconciliation is under development. We&apos;ll notify you when it&apos;s ready.
             </AlertDescription>
           </Alert>
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">

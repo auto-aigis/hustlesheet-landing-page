@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,13 +21,7 @@ function VerifyEmailContent() {
   const router = useRouter();
   const { refresh } = useAuth();
 
-  useEffect(() => {
-    if (token) {
-      verifyToken();
-    }
-  }, [token, verifyToken]);
-
-  const verifyToken = async () => {
+  const verifyToken = useCallback(async () => {
     if (!token) return;
     setLoading(true);
     try {
@@ -40,7 +34,13 @@ function VerifyEmailContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, refresh, router]);
+
+  useEffect(() => {
+    if (token) {
+      verifyToken();
+    }
+  }, [token, verifyToken]);
 
   const handleResend = async () => {
     if (!email) return;

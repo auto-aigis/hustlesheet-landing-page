@@ -11,7 +11,7 @@ export default function AISProGate() {
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">AIS Reconciliation</h1>
-        <p className="text-gray-500 mt-1">Cross-check your income with the Income Tax Department's Annual Information Statement</p>
+        <p className="text-gray-500 mt-1">Cross-check your income with the Income Tax Department&rsquo;s Annual Information Statement</p>
       </div>
       <Card className="border-amber-300 bg-amber-50">
         <CardHeader>
@@ -40,7 +40,7 @@ export default function AISProGate() {
         <CardHeader><CardTitle className="text-base">What is AIS?</CardTitle></CardHeader>
         <CardContent className="text-sm text-gray-600 space-y-2">
           <p>The <strong>Annual Information Statement (AIS)</strong> is a comprehensive document from the Income Tax Department reflecting all financial transactions reported by banks, employers, and platforms.</p>
-          <p>Reconciling your AIS with your filed income ensures you don't miss any income and avoid scrutiny notices.</p>
+           <p>Reconciling your AIS with your filed income ensures you don&rsquo;t miss any income and avoid scrutiny notices.</p>
         </CardContent>
       </Card>
     </div>

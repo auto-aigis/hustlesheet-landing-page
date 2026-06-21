@@ -132,7 +132,7 @@ export default function SettingsPage() {
             <form onSubmit={handleOptInAlerts} className="space-y-4">
               {alertSuccess && (
                 <Alert className="border-green-200 bg-green-50">
-                  <AlertDescription className="text-green-800">✓ Alert email saved! You'll receive quarterly reminders.</AlertDescription>
+                  <AlertDescription className="text-green-800">✓ Alert email saved! You&rsquo;ll receive quarterly reminders.</AlertDescription>
                 </Alert>
               )}
               <div className="flex gap-3">

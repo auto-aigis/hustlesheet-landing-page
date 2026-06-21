@@ -136,7 +136,7 @@ export default function OnboardingPage() {
                 <CheckCircle2 size={15} className="text-green-600" />Section 44ADA applies to your profile
               </p>
               <p className="text-xs text-green-700">
-                Professional/freelance income ≤ ₹50L qualifies for 50% presumptive deduction — we'll calculate both scenarios for you.
+                Professional/freelance income ≤ ₹50L qualifies for 50% presumptive deduction — we&rsquo;ll calculate both scenarios for you.
               </p>
             </div>
           )}

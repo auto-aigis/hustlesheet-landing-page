@@ -51,7 +51,7 @@ export default function RegisterPage() {
   );
 
   const perks = [
-    'Old & New Regime comparison for FY2024-25',
+    'Old & New Regime comparison for FY2024&rsquo;25',
     'Section 44ADA eligibility auto-detection',
     'ITR-1/2/4 filing category determination',
     'TDS reconciliation & export (Pro)',

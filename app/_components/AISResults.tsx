@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react';
-import type { AISEntry } from '@/app/(app)/ais/page';
+import type { AISEntry } from '@/app/_lib/ais-parser';
 
 function fmt(n: number) { return `₹${Math.round(n).toLocaleString('en-IN')}`; }
 

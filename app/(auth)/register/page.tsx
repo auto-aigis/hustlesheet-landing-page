@@ -62,7 +62,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-md space-y-4">
         <div className="text-center">
           <h1 className="text-3xl font-extrabold text-blue-600">HustleSheet</h1>
-          <p className="text-gray-500 text-sm mt-1">Free tax optimizer for India's side-hustle economy</p>
+           <p className="text-gray-500 text-sm mt-1">Free tax optimizer for India&rsquo;s side-hustle economy</p>
         </div>
         <Card className="shadow-sm">
           <CardHeader>

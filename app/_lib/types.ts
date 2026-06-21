@@ -4,6 +4,16 @@ export interface User {
   display_name: string | null;
   is_onboarded: boolean;
   is_email_verified: boolean;
+  side_hustle_types: string | null;
+}
+
+export interface SideHustleStream {
+  id?: string;
+  source_name: string;
+  annual_amount: number;
+  expenses_claimed: number;
+  income_type: 'professional_services' | 'technical_services' | 'freelancing' | 'consulting' | 'commission' | 'gig' | 'affiliate' | 'other';
+  use_44ada: boolean;
 }
 
 export interface IncomeProfile {
@@ -14,6 +24,9 @@ export interface IncomeProfile {
   basic: number | null;
   hra: number | null;
   special_allowance: number | null;
+  rent_paid: number | null;
+  city_tier: string | null;
+  tds_deducted: number;
   deduction_80c: number;
   deduction_80d: number;
   hra_exemption: number;
@@ -21,12 +34,9 @@ export interface IncomeProfile {
   side_hustle_streams: SideHustleStream[];
 }
 
-export interface SideHustleStream {
-  id?: string;
-  source_name: string;
-  annual_amount: number;
-  income_type: 'professional_services' | 'technical_services' | 'commission' | 'other';
-  use_44ada: boolean;
+export interface CalcLine {
+  label: string;
+  amount: number;
 }
 
 export interface TaxCalculation {
@@ -42,10 +52,13 @@ export interface TaxCalculation {
   recommended_regime: 'old' | 'new';
   regime_savings: number;
   itr_category: string;
+  itr_explanation: string;
   is_44ada_eligible: boolean;
-  tax_with_44ada: number;
-  tax_without_44ada: number;
+  tax_with_44ada: number | null;
+  tax_without_44ada: number | null;
   professional_income_total: number;
+  calculation_lines_old: CalcLine[];
+  calculation_lines_new: CalcLine[];
 }
 
 export interface TaxSummary {
@@ -55,19 +68,27 @@ export interface TaxSummary {
   taxable_income_new: number;
   tax_old_regime: number;
   tax_new_regime: number;
+  cess_old: number;
+  cess_new: number;
   total_tax_old: number;
   total_tax_new: number;
   recommended_regime: 'old' | 'new';
+  regime_savings: number;
   itr_category: string;
+  itr_explanation: string;
   is_44ada_eligible: boolean;
-  tax_with_44ada: number;
-  tax_without_44ada: number;
+  tax_with_44ada: number | null;
+  tax_without_44ada: number | null;
+  professional_income_total: number;
   deductions_breakdown: {
     standard_deduction: number;
     section_80c: number;
     section_80d: number;
     hra_exemption: number;
+    business_expenses: number;
   };
+  calculation_lines_old: CalcLine[];
+  calculation_lines_new: CalcLine[];
 }
 
 export interface Subscription {

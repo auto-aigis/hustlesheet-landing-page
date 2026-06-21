@@ -30,17 +30,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     try {
       await authApi.logout();
-      setUser(null);
-      setSubscription(null);
-      router.push('/login');
-    } catch (err) {
-      console.error('Logout failed:', err);
-    }
+    } catch {}
+    setUser(null);
+    setSubscription(null);
+    router.push('/login');
   };
 
-  useEffect(() => {
-    refresh();
-  }, []);
+  useEffect(() => { refresh(); }, []);
 
   return (
     <AuthContext.Provider value={{ user, subscription, loading, refresh, logout }}>

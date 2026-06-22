@@ -1,2 +1,5 @@
-// This route is intentionally empty
-const _unused = null;
+import { redirect } from 'next/navigation';
+
+export default function RegisterPage() {
+  redirect('/auth/register');
+}

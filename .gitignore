@@ -1,34 +1,13 @@
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
-.yarn/install-state.gz
+# Ignore conflicting route files
+app/(auth)/login/page.tsx
+app/(auth)/register/page.tsx
+app/(auth)/verify-email/page.tsx
+app/login/page.tsx
+app/register/page.tsx
+app/verify-email/page.tsx
 
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
+# Standard Next.js ignores
+.next/
+node_modules/
+*.log
 .DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# local env files
-.env*.local
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts

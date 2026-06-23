@@ -1,50 +1,49 @@
 "use client";
 
-import { ReactNode, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { AuthContext, AuthContextType } from '@/app/_lib/hooks';
+import { createContext, useContext, useEffect, useState } from 'react';
+import type { User } from '@/app/_lib/types';
 import { authApi } from '@/app/_lib/api';
-import { User, Subscription } from '@/app/_lib/types';
 
-interface Props {
-  children: ReactNode;
+interface AuthContextType {
+  user: User | null;
+  loading: boolean;
+  refresh: () => Promise<void>;
+  logout: () => Promise<void>;
 }
 
-export function AuthProvider({ children }: Props) {
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
   const refresh = async () => {
     try {
       const data = await authApi.me();
-      setUser(data.user);
-      setSubscription(data.subscription || null);
+      setUser(data);
     } catch {
       setUser(null);
-      setSubscription(null);
-    } finally {
-      setLoading(false);
     }
   };
 
   const logout = async () => {
-    try {
-      await authApi.logout();
-      setUser(null);
-      setSubscription(null);
-      router.push('/login');
-    } catch (err) {
-      console.error('Logout failed:', err);
-    }
+    await authApi.logout();
+    setUser(null);
   };
 
   useEffect(() => {
-    refresh();
+    refresh().finally(() => setLoading(false));
   }, []);
 
-  const value: AuthContextType = { user, subscription, loading, refresh, logout };
+  return (
+    <AuthContext.Provider value={{ user, loading, refresh, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  return ctx;
 }

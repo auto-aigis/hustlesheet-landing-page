@@ -1,49 +1,50 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from 'react';
-import type { User } from '@/app/_lib/types';
+import { ReactNode, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { AuthContext, AuthContextType } from '@/app/_lib/hooks';
 import { authApi } from '@/app/_lib/api';
+import { User, Subscription } from '@/app/_lib/types';
 
-interface AuthContextType {
-  user: User | null;
-  loading: boolean;
-  refresh: () => Promise<void>;
-  logout: () => Promise<void>;
+interface Props {
+  children: ReactNode;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: Props) {
   const [user, setUser] = useState<User | null>(null);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   const refresh = async () => {
     try {
       const data = await authApi.me();
-      setUser(data);
+      setUser(data.user);
+      setSubscription(data.subscription || null);
     } catch {
       setUser(null);
+      setSubscription(null);
+    } finally {
+      setLoading(false);
     }
   };
 
   const logout = async () => {
-    await authApi.logout();
-    setUser(null);
+    try {
+      await authApi.logout();
+      setUser(null);
+      setSubscription(null);
+      router.push('/login');
+    } catch (err) {
+      console.error('Logout failed:', err);
+    }
   };
 
   useEffect(() => {
-    refresh().finally(() => setLoading(false));
+    refresh();
   }, []);
 
-  return (
-    <AuthContext.Provider value={{ user, loading, refresh, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
-}
+  const value: AuthContextType = { user, subscription, loading, refresh, logout };
 
-export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
-  return ctx;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

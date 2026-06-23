@@ -1,1 +1,3 @@
-// Intentionally empty - routes consolidated to root level
+export default function AuthLayout({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;;
+}

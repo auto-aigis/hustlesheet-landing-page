@@ -1,1 +1,107 @@
-\"use client\";\n\nimport { useEffect, useState, Suspense } from 'react';\nimport { useSearchParams } from 'next/navigation';\nimport { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';\nimport type { TaxDashboard } from '@/app/_lib/types';\nimport { taxApi, paymentApi } from '@/app/_lib/api';\n\nfunction DashboardContent() {\n  const searchParams = useSearchParams();\n  const [dashboard, setDashboard] = useState<TaxDashboard | null>(null);\n  const [loading, setLoading] = useState(true);\n  const [error, setError] = useState('');\n\n  useEffect(() => {\n    const txnId = searchParams?.get('transaction_id');\n    const checkoutSuccess = searchParams?.get('checkout');\n\n    if (checkoutSuccess === 'success' && txnId) {\n      verifyTransaction(txnId);\n    } else {\n      loadDashboard();\n    }\n  }, [searchParams]);\n\n  const verifyTransaction = async (txnId: string) => {\n    try {\n      await paymentApi.verifyTransaction(txnId);\n      const url = new URL(window.location);\n      url.searchParams.delete('checkout');\n      url.searchParams.delete('transaction_id');\n      window.history.replaceState({}, '', url);\n      loadDashboard();\n    } catch (err) {\n      console.error('Verification failed, falling back to polling:', err);\n      startPolling();\n    }\n  };\n\n  const startPolling = async () => {\n    for (let i = 0; i < 20; i++) {\n      await new Promise((resolve) => setTimeout(resolve, 2000));\n      try {\n        const data = await taxApi.dashboard();\n        if (data) {\n          const url = new URL(window.location);\n          url.searchParams.delete('checkout');\n          url.searchParams.delete('transaction_id');\n          window.history.replaceState({}, '', url);\n          setDashboard(data);\n          setLoading(false);\n          return;\n        }\n      } catch {}\n    }\n    loadDashboard();\n  };\n\n  const loadDashboard = async () => {\n    try {\n      setLoading(true);\n      const data = await taxApi.dashboard();\n      setDashboard(data);\n    } catch (err) {\n      setError(err instanceof Error ? err.message : 'Failed to load tax dashboard');\n    } finally {\n      setLoading(false);\n    }\n  };\n\n  if (loading && !dashboard) {\n    return <div className=\"mx-auto max-w-5xl p-6 text-gray-500\">Loading tax dashboard...</div>;\n  }\n\n  if (error && !dashboard) {\n    return <div className=\"mx-auto max-w-5xl p-6 text-red-600\">{error}</div>;\n  }\n\n  if (!dashboard) {\n    return <div className=\"mx-auto max-w-5xl p-6 text-gray-500\">Processing payment...</div>;\n  }\n\n  const effectiveTaxRate = dashboard.annual_income > 0 ? (dashboard.net_tax_liability / dashboard.annual_income) * 100 : 0;\n\n  return (\n    <div className=\"mx-auto max-w-5xl p-6 space-y-6\">\n      <div>\n        <h1 className=\"text-3xl font-bold text-gray-900\">Tax Dashboard</h1>\n        <p className=\"text-gray-600 mt-2\">FY {dashboard.financial_year} | Tax Regime: {dashboard.regime === 'old' ? 'Old' : 'New'}</p>\n      </div>\n\n      <div className=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4\">\n        <Card className=\"bg-white border-gray-200\">\n          <CardHeader className=\"pb-3\">\n            <CardTitle className=\"text-sm font-medium text-gray-600\">Annual Income</CardTitle>\n          </CardHeader>\n          <CardContent>\n            <div className=\"text-2xl font-bold text-gray-900\">\n              ₹{dashboard.annual_income.toLocaleString('en-IN')}\n            </div>\n          </CardContent>\n        </Card>\n\n        <Card className=\"bg-white border-gray-200\">\n          <CardHeader className=\"pb-3\">\n            <CardTitle className=\"text-sm font-medium text-gray-600\">Deductible Expenses</CardTitle>\n          </CardHeader>\n          <CardContent>\n            <div className=\"text-2xl font-bold text-gray-900\">\n              ₹{dashboard.total_deductible_expenses.toLocaleString('en-IN')}\n            </div>\n            <p className=\"text-xs text-gray-500 mt-1\">Section 37(1)</p>\n          </CardContent>\n        </Card>\n\n        <Card className=\"bg-white border-gray-200\">\n          <CardHeader className=\"pb-3\">\n            <CardTitle className=\"text-sm font-medium text-gray-600\">Taxable Income</CardTitle>\n          </CardHeader>\n          <CardContent>\n            <div className=\"text-2xl font-bold text-gray-900\">\n              ₹{dashboard.taxable_income.toLocaleString('en-IN')}\n            </div>\n            <p className=\"text-xs text-gray-500 mt-1\">After deductions</p>\n          </CardContent>\n        </Card>\n      </div>\n\n      <Card className=\"bg-green-50 border border-green-200\">\n        <CardHeader>\n          <CardTitle className=\"text-lg text-green-900\">Tax Liability Summary</CardTitle>\n        </CardHeader>\n        <CardContent className=\"space-y-4\">\n          <div className=\"flex items-center justify-between\">\n            <span className=\"text-green-900 font-medium\">Net Tax Liability:</span>\n            <span className=\"text-2xl font-bold text-green-900\">\n              ₹{dashboard.net_tax_liability.toLocaleString('en-IN')}\n            </span>\n          </div>\n          <div className=\"flex items-center justify-between\">\n            <span className=\"text-green-900 font-medium\">Effective Tax Rate:</span>\n            <span className=\"text-lg font-semibold text-green-900\">{effectiveTaxRate.toFixed(2)}%</span>\n          </div>\n          {dashboard.tax_liability_reduction > 0 && (\n            <div className=\"bg-blue-50 border border-blue-200 rounded p-4 mt-4\">\n              <p className=\"text-sm font-medium text-blue-900\">\n                🎉 Tax saved: <span className=\"font-bold\">₹{dashboard.tax_liability_reduction.toLocaleString('en-IN')}</span> from logged business expenses\n              </p>\n            </div>\n          )}\n        </CardContent>\n      </Card>\n    </div>\n  );\n}\n\nexport default function Dashboard() {\n  return (\n    <Suspense fallback={<div className=\"mx-auto max-w-5xl p-6 text-gray-500\">Loading...</div>}>\n      <DashboardContent />\n    </Suspense>\n  );\n}\n
+"use client";
+
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuth } from '@/app/_lib/hooks';
+import { taxApi } from '@/app/_lib/api';
+import { TaxAlertResponse } from '@/app/_lib/types';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
+
+function DashboardContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { user } = useAuth();
+  const [alerts, setAlerts] = useState<TaxAlertResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const checkoutSuccess = searchParams.get('checkout');
+  const transactionId = searchParams.get('transaction_id');
+
+  useEffect(() => {
+    const loadAlerts = async () => {
+      try {
+        const data = await taxApi.alerts();
+        setAlerts(data);
+      } catch (err) {
+        console.error('Failed to load alerts:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAlerts();
+  }, []);
+
+  const dueSoonAlerts = alerts.filter((a) => a.status === 'due_soon');
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-6 p-6">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+        <p className="mt-2 text-gray-600">Welcome back, {user?.display_name || user?.email}</p>
+      </div>
+
+      {checkoutSuccess === 'success' && (
+        <Alert>
+          <AlertDescription>Payment successful! You now have Pro access.</AlertDescription>
+        </Alert>
+      )}
+
+      {dueSoonAlerts.length > 0 && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Advance tax Q{dueSoonAlerts[0].quarter.slice(1)} due in {dueSoonAlerts[0].days_until_due} days.</strong> You owe ₹{Math.floor(dueSoonAlerts[0].amount_due).toLocaleString('en-IN')}.
+            <Button
+              onClick={() => router.push('/dashboard/tax-planner')}
+              variant="link"
+              className="ml-2 h-auto p-0"
+            >
+              View details
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Quick Stats</CardTitle>
+          <CardDescription>Your current tax profile</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <p className="text-sm text-gray-600">Tax Regime</p>
+              <p className="text-lg font-semibold text-gray-900">{user?.tax_regime}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">44ADA Presumptive</p>
+              <p className="text-lg font-semibold text-gray-900">{user?.is_44ada ? 'Yes (50% deduction)' : 'No'}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Tax Planner</CardTitle>
+          <CardDescription>View quarterly advance tax projections</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={() => router.push('/dashboard/tax-planner')} className="w-full">Open Tax Planner</Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
+      <DashboardContent />
+    </Suspense>
+  );
+}

@@ -1,27 +1,26 @@
 "use client";
 
-import { useCallback, useMemo } from 'react';
-import type { ExpenseCategory } from './types';
-import { CATEGORY_RULES } from './types';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { User, Subscription } from './types';
+import { authApi } from './api';
 
-export function useDeductionRules() {
-  return useMemo(() => CATEGORY_RULES, []);
+interface AuthContextType {
+  user: User | null;
+  subscription: Subscription | null;
+  loading: boolean;
+  refresh: () => Promise<void>;
+  logout: () => Promise<void>;
 }
 
-export function useCalculateDeductible(amount: number, category: ExpenseCategory, customPercentage?: number) {
-  return useCallback(() => {
-    const rules = CATEGORY_RULES[category];
-    const percentage = category === 'home_office' ? (customPercentage ?? 0) : rules.percentage;
-    return Math.round((amount * percentage) / 100);
-  }, [amount, category, customPercentage]);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  return ctx;
 }
 
-export function useFormatCurrency(value: number): string {
-  return useMemo(() => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0,
-    }).format(value);
-  }, [value]);
+export function usePro() {
+  const { subscription } = useAuth();
+  return subscription?.tier === 'pro' || subscription?.tier === 'premium';
 }

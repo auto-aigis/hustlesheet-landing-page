@@ -1,34 +1,40 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/app/_components/AuthProvider';
 import { authApi } from '@/app/_lib/api';
+import Link from 'next/link';
 
 function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [code, setCode] = useState('');
-  const [error, setError] = useState('');
+  const { refresh } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [resendLoading, setResendLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const email = searchParams.get('email') || '';
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+  const [resending, setResending] = useState(false);
 
-  const handleVerify = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+  const token = searchParams?.get('token');
+  const email = searchParams?.get('email');
+
+  useEffect(() => {
+    if (token) {
+      verifyToken();
+    }
+  }, [token]);
+
+  const verifyToken = async () => {
+    if (!token) return;
 
     try {
-      await authApi.verifyEmail(email, code);
-      setSuccess(true);
-      setTimeout(() => router.push('/login'), 2000);
+      setLoading(true);
+      await authApi.verifyEmail(token);
+      await refresh();
+      setMessage('Email verified successfully! Redirecting...');
+      setTimeout(() => router.push('/dashboard'), 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Verification failed');
     } finally {
@@ -37,62 +43,80 @@ function VerifyEmailContent() {
   };
 
   const handleResend = async () => {
-    setResendLoading(true);
+    if (!email) {
+      setError('Email not found');
+      return;
+    }
+
     try {
-      await authApi.resendVerificationCode(email);
+      setResending(true);
       setError('');
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
+      await authApi.resendVerification(email);
+      setMessage('Verification email sent! Check your inbox.');
+      setTimeout(() => setMessage(''), 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Resend failed');
+      setError(err instanceof Error ? err.message : 'Failed to resend');
     } finally {
-      setResendLoading(false);
+      setResending(false);
     }
   };
 
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-white px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Verify Email</CardTitle>
-          <CardDescription>Enter the verification code sent to {email}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleVerify} className="space-y-4">
-            {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
-            {success && <Alert><AlertDescription>Email verified successfully!</AlertDescription></Alert>}
-            <div className="space-y-2">
-              <Label htmlFor="code">Verification Code</Label>
-              <Input
-                id="code"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="Enter 6-digit code"
-                required
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Verifying...' : 'Verify Email'}
-            </Button>
-          </form>
-          <Button
-            variant="outline"
-            className="w-full mt-4"
-            onClick={handleResend}
-            disabled={resendLoading}
-          >
-            {resendLoading ? 'Sending...' : 'Resend Code'}
-          </Button>
-        </CardContent>
+  if (loading) {
+    return <div className="text-center text-gray-600">Verifying your email...</div>;
+  }
+
+  if (message) {
+    return (
+      <Card className="w-full max-w-md bg-white border-gray-200">
+        <CardContent className="pt-6 text-center text-green-600">{message}</CardContent>
       </Card>
-    </div>
+    );
+  }
+
+  return (
+    <Card className="w-full max-w-md bg-white border-gray-200">
+      <CardHeader>
+        <CardTitle>Verify Your Email</CardTitle>
+        <CardDescription>
+          {token ? 'Verifying your email...' : 'Check your inbox for a verification link'}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {email && !token && (
+          <div>
+            <p className="text-sm text-gray-600 mb-4">
+              We sent a verification link to <strong>{email}</strong>. Click the link in your email to verify your account.
+            </p>
+            <Button
+              onClick={handleResend}
+              disabled={resending}
+              variant="outline"
+              className="w-full text-gray-900 border-gray-200"
+            >
+              {resending ? 'Sending...' : 'Resend Verification Email'}
+            </Button>
+            <div className="mt-4 text-center">
+              <Link href="/login" className="text-sm text-blue-600 hover:text-blue-700">
+                Back to Sign In
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-3">{error}</div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
-export default function VerifyEmailPage() {
+export default function VerifyEmail() {
   return (
-    <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
-      <VerifyEmailContent />
-    </Suspense>
+    <div className="min-h-screen flex items-center justify-center bg-white px-4">
+      <Suspense fallback={<div className="text-gray-500">Loading...</div>}>
+        <VerifyEmailContent />
+      </Suspense>
+    </div>
   );
 }

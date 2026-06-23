@@ -9,7 +9,6 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
     },
     ...options,
   });
-
   if (!res.ok) {
     let msg = `API error: ${res.status}`;
     try {
@@ -24,31 +23,68 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
   return res.json();
 }
 
+import type { User, Subscription, Expense, ExpenseSummary, TaxDashboard, CreateExpenseRequest } from './types';
+
 export const authApi = {
-  register: (email: string, password: string, display_name?: string) =>
+  login: (email: string, password: string) =>
+    apiFetch<User>('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    }),
+  register: (email: string, password: string, display_name: string) =>
     apiFetch<{ status: string; email: string }>('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify({ email, password, display_name }),
     }),
-  login: (email: string, password: string) =>
-    apiFetch<{ status: string; user_id: string }>('/api/auth/login', {
+  logout: () => apiFetch<{ status: string }>('/api/auth/logout', { method: 'POST' }),
+  me: () => apiFetch<User>('/api/auth/me'),
+  verifyEmail: (token: string) =>
+    apiFetch<{ status: string }>('/api/auth/verify-email', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ token }),
     }),
-  logout: () =>
-    apiFetch<{ status: string }>('/api/auth/logout', { method: 'POST' }),
-  me: () => apiFetch('/api/auth/me'),
-  subscription: () => apiFetch('/api/auth/subscription'),
+  resendVerification: (email: string) =>
+    apiFetch<{ status: string }>('/api/auth/resend-verification', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+  getSubscription: () => apiFetch<Subscription>('/api/auth/subscription'),
+};
+
+export const expenseApi = {
+  list: (category?: string, start?: string, end?: string, skip?: number, limit?: number) => {
+    const params = new URLSearchParams();
+    if (category) params.append('category', category);
+    if (start) params.append('start', start);
+    if (end) params.append('end', end);
+    if (skip !== undefined) params.append('skip', skip.toString());
+    if (limit !== undefined) params.append('limit', limit.toString());
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return apiFetch<Expense[]>(`/api/expenses${query}`);
+  },
+  create: (data: CreateExpenseRequest) =>
+    apiFetch<Expense>('/api/expenses', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  delete: (id: string) =>
+    apiFetch<{ status: string }>(`/api/expenses/${id}`, { method: 'DELETE' }),
+  summary: () => apiFetch<ExpenseSummary>('/api/expenses/summary'),
 };
 
 export const taxApi = {
-  projection: () => apiFetch('/api/tax/projection'),
-  payments: (quarter: string, tds_deducted: number, advance_tax_paid: number) =>
-    apiFetch('/api/tax/payments', {
+  dashboard: () => apiFetch<TaxDashboard>('/api/tax/dashboard'),
+  updateProfile: (annual_income: number, regime: 'old' | 'new') =>
+    apiFetch<{ status: string }>('/api/tax/profile', {
       method: 'POST',
-      body: JSON.stringify({ quarter, tds_deducted, advance_tax_paid }),
+      body: JSON.stringify({ annual_income, regime }),
     }),
-  alerts: () => apiFetch('/api/tax/alerts'),
-  dismissAlert: (alert_id: string) =>
-    apiFetch(`/api/tax/alerts/${alert_id}/dismiss`, { method: 'POST' }),
+};
+
+export const paymentApi = {
+  verifyTransaction: (transaction_id: string) =>
+    apiFetch<{ status: string; tier: string }>('/api/payments/verify-transaction', {
+      method: 'POST',
+      body: JSON.stringify({ transaction_id }),
+    }),
 };

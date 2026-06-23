@@ -2,40 +2,57 @@ export interface User {
   id: string;
   email: string;
   display_name: string | null;
-  tier: 'free' | 'pro' | 'premium';
-  is_email_verified: boolean;
+  tax_regime: string;
+  is_44ada: boolean;
+  created_at: string;
 }
 
 export interface Subscription {
+  id: string;
   tier: 'free' | 'pro' | 'premium';
-  status: 'inactive' | 'active';
+  status: string;
   current_period_end: string | null;
 }
 
-export interface AISEntry {
-  id: string;
-  fiscal_year: string;
-  category: 'salary' | 'interest' | 'dividend' | 'freelance' | 'rent' | 'other';
-  source_name: string;
-  amount: number;
-  created_at: string;
-  updated_at: string;
+export interface AuthResponse {
+  user: User;
+  subscription: Subscription | null;
 }
 
-export interface ReconciliationLineItem {
-  status: 'matched' | 'mismatch' | 'missing';
-  source_name: string;
-  ais_amount: number;
-  self_reported_amount: number | null;
-  delta: number | null;
+export interface QuarterlyInstallment {
+  quarter: 'Q1' | 'Q2' | 'Q3' | 'Q4';
+  due_date: string;
+  cumulative_due: number;
+  amount_due_this_quarter: number;
+  paid_so_far: number;
+  balance_remaining: number;
   explanation: string;
 }
 
-export interface ReconciliationReport {
-  fiscal_year: string;
-  summary_matched: number;
-  summary_mismatch: number;
-  summary_missing: number;
-  line_items: ReconciliationLineItem[];
-  is_gated: boolean;
+export interface TaxProjectionResponse {
+  estimated_annual_tax: number;
+  is_liable_for_advance_tax: boolean;
+  liability_explanation: string;
+  installments: QuarterlyInstallment[];
+  risk_234b: boolean;
+  risk_234b_explanation: string;
+  risk_234c: boolean;
+  risk_234c_explanation: string;
+  financial_year: number;
+}
+
+export interface TaxAlertResponse {
+  id: string;
+  quarter: 'Q1' | 'Q2' | 'Q3' | 'Q4';
+  deadline: string;
+  days_until_due: number;
+  amount_due: number;
+  dismissed: boolean;
+  status: 'overdue' | 'due_soon' | 'upcoming';
+}
+
+export interface AdvanceTaxPaymentRequest {
+  quarter: 'Q1' | 'Q2' | 'Q3' | 'Q4';
+  tds_deducted?: number;
+  advance_tax_paid?: number;
 }

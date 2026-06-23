@@ -1,146 +1,107 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { reconciliationApi } from "@/app/_lib/api";
-import { useAuth } from "@/app/_lib/hooks";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle } from "lucide-react";
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuth } from '@/app/_lib/hooks';
+import { taxApi } from '@/app/_lib/api';
+import { TaxAlertResponse } from '@/app/_lib/types';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
-const currentFY = "FY2024-25";
-
-export default function DashboardPage() {
-  const { user } = useAuth();
+function DashboardContent() {
   const router = useRouter();
-  const [report, setReport] = useState<any | null>(null);
+  const searchParams = useSearchParams();
+  const { user } = useAuth();
+  const [alerts, setAlerts] = useState<TaxAlertResponse[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+
+  const checkoutSuccess = searchParams.get('checkout');
+  const transactionId = searchParams.get('transaction_id');
 
   useEffect(() => {
-    loadReport();
+    const loadAlerts = async () => {
+      try {
+        const data = await taxApi.alerts();
+        setAlerts(data);
+      } catch (err) {
+        console.error('Failed to load alerts:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAlerts();
   }, []);
 
-  const loadReport = async () => {
-    try {
-      const data = await reconciliationApi.getReport(currentFY);
-      setReport(data);
-    } catch {
-      setReport(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const hasMismatches =
-    report &&
-    (report.summary_mismatch > 0 || report.summary_missing > 0);
+  const dueSoonAlerts = alerts.filter((a) => a.status === 'due_soon');
 
   return (
-    <div className="mx-auto max-w-5xl p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Tax Dashboard</h1>
-        <p className="text-gray-600">
-          Welcome back, {user?.display_name || user?.email}
-        </p>
+    <div className="mx-auto max-w-5xl space-y-6 p-6">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+        <p className="mt-2 text-gray-600">Welcome back, {user?.display_name || user?.email}</p>
       </div>
 
-      {!loading && report && hasMismatches && (
-        <Alert className="mb-6 border-amber-200 bg-amber-50">
-          <AlertCircle className="h-4 w-4 text-amber-600" />
-          <AlertDescription className="text-amber-800 ml-2">
-            ⚠️ {report.summary_mismatch + report.summary_missing} AIS discrepancies
-            detected —{" "}
-            <button
-              onClick={() => router.push("/dashboard/ais/report")}
-              className="font-medium underline hover:no-underline"
+      {checkoutSuccess === 'success' && (
+        <Alert>
+          <AlertDescription>Payment successful! You now have Pro access.</AlertDescription>
+        </Alert>
+      )}
+
+      {dueSoonAlerts.length > 0 && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Advance tax Q{dueSoonAlerts[0].quarter.slice(1)} due in {dueSoonAlerts[0].days_until_due} days.</strong> You owe ₹{Math.floor(dueSoonAlerts[0].amount_due).toLocaleString('en-IN')}.
+            <Button
+              onClick={() => router.push('/dashboard/tax-planner')}
+              variant="link"
+              className="ml-2 h-auto p-0"
             >
-              review now
-            </button>
+              View details
+            </Button>
           </AlertDescription>
         </Alert>
       )}
-
-      {!loading && report && !hasMismatches && (
-        <Alert className="mb-6 border-green-200 bg-green-50">
-          <CheckCircle className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-800 ml-2">
-            ✅ AIS reconciled for {currentFY}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              AIS Entries
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-gray-900">
-              {report ? report.summary_matched + report.summary_mismatch + report.summary_missing : "—"}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Matched ✅
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-green-600">
-              {report ? report.summary_matched : "—"}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Issues ⚠️
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-amber-600">
-              {report
-                ? report.summary_mismatch + report.summary_missing
-                : "—"}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
+          <CardTitle>Quick Stats</CardTitle>
+          <CardDescription>Your current tax profile</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2">
-          <Button
-            onClick={() => router.push("/dashboard/ais")}
-            className="w-full justify-start"
-          >
-            Enter AIS Income →
-          </Button>
-          <Button
-            onClick={() => router.push("/dashboard/ais/report")}
-            variant="outline"
-            className="w-full justify-start"
-          >
-            View Reconciliation Report →
-          </Button>
-          {user?.tier === "free" && (
-            <Button
-              onClick={() => router.push("/pricing")}
-              variant="outline"
-              className="w-full justify-start border-blue-300 text-blue-600 hover:bg-blue-50"
-            >
-              Upgrade to Pro →
-            </Button>
-          )}
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <p className="text-sm text-gray-600">Tax Regime</p>
+              <p className="text-lg font-semibold text-gray-900">{user?.tax_regime}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">44ADA Presumptive</p>
+              <p className="text-lg font-semibold text-gray-900">{user?.is_44ada ? 'Yes (50% deduction)' : 'No'}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Tax Planner</CardTitle>
+          <CardDescription>View quarterly advance tax projections</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={() => router.push('/dashboard/tax-planner')} className="w-full">Open Tax Planner</Button>
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
+      <DashboardContent />
+    </Suspense>
   );
 }

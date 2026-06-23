@@ -1,26 +1,31 @@
 "use client";
 
-import { createContext, useState, useEffect, ReactNode } from "react";
-import { authApi } from "@/app/_lib/api";
-import { User } from "@/app/_lib/types";
+import { ReactNode, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { AuthContext, AuthContextType } from '@/app/_lib/hooks';
+import { authApi } from '@/app/_lib/api';
+import { User, Subscription } from '@/app/_lib/types';
 
-export const AuthContext = createContext<{
-  user: User | null;
-  loading: boolean;
-  refresh: () => Promise<void>;
-  logout: () => Promise<void>;
-} | null>(null);
+interface Props {
+  children: ReactNode;
+}
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: Props) {
   const [user, setUser] = useState<User | null>(null);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   const refresh = async () => {
     try {
       const data = await authApi.me();
-      setUser({ ...data, tier: data.tier || "free" });
+      setUser(data.user);
+      setSubscription(data.subscription || null);
     } catch {
       setUser(null);
+      setSubscription(null);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -28,16 +33,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await authApi.logout();
       setUser(null);
-    } catch {}
+      setSubscription(null);
+      router.push('/login');
+    } catch (err) {
+      console.error('Logout failed:', err);
+    }
   };
 
   useEffect(() => {
-    refresh().finally(() => setLoading(false));
+    refresh();
   }, []);
 
-  return (
-    <AuthContext.Provider value={{ user, loading, refresh, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  const value: AuthContextType = { user, subscription, loading, refresh, logout };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
